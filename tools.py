@@ -2,6 +2,21 @@ import numpy as np
 import numpy.fft as fft
 
 
+def cent2edge(x):
+    x = np.array(x)
+    n = len(x) + 1
+    dx = x[1] - x[0]
+    x_out = np.zeros(n)
+    x_out[:-1] = x[:] - dx / 2
+    x_out[-1] = x[-1] + dx / 2
+    return x_out
+
+
+def edge2cent(x):
+    x = np.array(x)
+    return (x[:-1] + x[1:]) * 0.5
+
+
 def create_map_2d(power_spectrum_function, x, y):
     n_x = len(x)-1
     n_y = len(y)-1

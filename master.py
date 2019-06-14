@@ -24,7 +24,7 @@ def mode_coupling_matrix_3d(w, k_bin_edges, dx=1.0, dy=1.0, dz=1.0, insert_edge_
     else:
         n_k = len(k_bin_edges) - 1
         full_k_bins = k_bin_edges
-
+    
     M = np.zeros((n_k, n_k))
     n_count = np.zeros((n_k, n_k))
 
@@ -35,6 +35,7 @@ def mode_coupling_matrix_3d(w, k_bin_edges, dx=1.0, dy=1.0, dz=1.0, insert_edge_
                 k_1 = np.sqrt(k_x_values[i] ** 2 + k_y_values[j] ** 2 + k_z_values[k] ** 2)
 
                 ind1 = np.digitize([k_1], full_k_bins) - 1
+                # print(k_1, np.max(np.abs(full_k_bins)), i, j, k)
                 n_count[ind1, :] += 1
 
                 l_indices = (i - np.arange(n_x)) % n_x
