@@ -11,7 +11,10 @@ import master
 
 class comap2ps():
     def __init__(self, mapfile, decimate_z=32, use_mpi=False, det=None):
+        self.pseudo_ps = True
+
         self.mapfile = mapfile
+        
         deg2mpc = 76.22  # at redshift 2.9
         dz2mpc = 699.62  # redshift 2.4 to 3.4
         #freq = np.linspace(26, 34, 257)
@@ -40,7 +43,7 @@ class comap2ps():
         self.nz = len(self.z)
         self.nx = len(self.x)
         self.ny = len(self.y)
-        print(self.nx, self.ny, self.nz)
+        # print(self.nx, self.ny, self.nz)
         kmax = np.sqrt(
             np.max(np.abs(fft.fftfreq(len(self.x), self.dx))) ** 2
             + np.max(np.abs(fft.fftfreq(len(self.y), self.dy))) ** 2
@@ -48,8 +51,9 @@ class comap2ps():
         )
 
         n_k = 15
-        print(kmax)
-        self.k_bin_edges = np.linspace(0 - 1e-5, kmax + 1e-5, n_k) #np.logspace(-3, np.log10(kmax + 1e-5), n_k) #np.linspace(0 - 1e-5, kmax + 1e-5, n_k)
+        # print(kmax)
+        # kmax = 0.23#0.155
+        self.k_bin_edges = np.linspace(0 - 1e-5, kmax + 1e-5, n_k)  # np.logspace(-3, np.log10(kmax + 1e-5), n_k) #np.linspace(0 - 1e-5, kmax + 1e-5, n_k)
         self.k = tools.edge2cent(self.k_bin_edges)
 
 
@@ -61,6 +65,7 @@ class comap2ps():
             self.rms = np.array(my_file['rms'][self.det-1]).transpose()
             # self.mask = np.array(my_file['mask'][:])
         sh = self.datamap.shape
+        # print(sh)
         self.datamap = self.datamap.reshape((sh[0] * sh[1], sh[2], sh[3]))
         self.rms = self.rms.reshape((sh[0] * sh[1], sh[2], sh[3]))
         self.mask = np.zeros_like(self.rms)
@@ -95,34 +100,47 @@ class comap2ps():
         used_x = np.where(self.mask.sum(axis=(1, 2)))[0]
         used_y = np.where(self.mask.sum(axis=(0, 2)))[0]
         used_z = np.where(self.mask.sum(axis=(0, 1)))[0]
-        self.datamap = self.datamap[used_x[0]:used_x[-1], used_y[0]:used_y[-1], used_z[0]:used_z[-1]]
-        self.w = self.w[used_x[0]:used_x[-1], used_y[0]:used_y[-1], used_z[0]:used_z[-1]]
-        self.rms = self.rms[used_x[0]:used_x[-1], used_y[0]:used_y[-1], used_z[0]:used_z[-1]]
-        self.mask = self.mask[used_x[0]:used_x[-1], used_y[0]:used_y[-1], used_z[0]:used_z[-1]]
-        self.x = self.x[used_x[0]:used_x[-1]]
-        self.y = self.y[used_y[0]:used_y[-1]]
-        self.z = self.z[used_z[0]:used_z[-1]]
+        try: 
+            self.datamap = self.datamap[used_x[0]:used_x[-1], used_y[0]:used_y[-1], used_z[0]:used_z[-1]]
+            self.w = self.w[used_x[0]:used_x[-1], used_y[0]:used_y[-1], used_z[0]:used_z[-1]]
+            self.rms = self.rms[used_x[0]:used_x[-1], used_y[0]:used_y[-1], used_z[0]:used_z[-1]]
+            self.mask = self.mask[used_x[0]:used_x[-1], used_y[0]:used_y[-1], used_z[0]:used_z[-1]]
+            self.x = self.x[used_x[0]:used_x[-1]]
+            self.y = self.y[used_y[0]:used_y[-1]]
+            self.z = self.z[used_z[0]:used_z[-1]]
+        except IndexError:
+            print('Empty map', len(used_x), len(used_y), len(used_z))
+            pass
 
 
     def calculate_mode_mixing_matrix(self, det=None):
-        self.M_inv, self.k_full = master.mode_coupling_matrix_3d(
+        self.M_inv, k = master.mode_coupling_matrix_3d(
             self.w, k_bin_edges=self.k_bin_edges, dx=self.dx,
             dy=self.dy, dz=self.dz, insert_edge_bins=False
         )
     
     def calculate_ps(self, det=None):
         ps_with_weight, k, _ = tools.compute_power_spec3d(
-            self.datamap * self.w, self.k_full, dx=self.dx, dy=self.dy, dz=self.dz)
-        self.data_ps = np.dot(self.M_inv, ps_with_weight)
+            self.datamap * self.w, self.k_bin_edges, dx=self.dx, dy=self.dy, dz=self.dz)
+        if self.pseudo_ps: 
+            self.data_ps = ps_with_weight
+        else:
+            self.data_ps = np.dot(self.M_inv, ps_with_weight)
         return self.data_ps, k
-    
+
     def run_noise_sims(self, n_sims):
-        rms_ps = np.zeros((len(self.k_full) - 1, n_sims))
+        rms_ps = np.zeros((len(self.k_bin_edges) - 1, n_sims))
         for i in range(n_sims):
-            rms_ps[:, i] = np.dot(self.M_inv, tools.compute_power_spec3d(
-                self.rms * np.random.randn(*self.rms.shape) * self.w,
-                self.k_full, dx=self.dx, dy=self.dy, dz=self.dz
-            )[0])
+            randmap = self.rms * np.random.randn(*self.rms.shape)
+            randmap = randmap - randmap.flatten().mean()
+            if self.pseudo_ps: 
+                rms_ps[:, i] = tools.compute_power_spec3d(
+                randmap * self.w, self.k_bin_edges, dx=self.dx, 
+                dy=self.dy, dz=self.dz)[0]
+            else:
+                rms_ps[:, i] = np.dot(self.M_inv, tools.compute_power_spec3d(
+                    randmap * self.w,self.k_bin_edges, dx=self.dx, 
+                    dy=self.dy, dz=self.dz)[0])
         self.rms_ps_mean = np.mean(rms_ps, axis=1)
         self.rms_ps_std = np.std(rms_ps, axis=1)
         return self.rms_ps_mean, self.rms_ps_std
