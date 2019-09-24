@@ -9,6 +9,7 @@ import sys
 import tools
 import master
 import comap2ps
+import map_obj
 
 try:
     mapname = sys.argv[1]
@@ -17,8 +18,10 @@ except IndexError:
     print('Usage: python ps_script.py mapname')
     sys.exit(1)
 
+maps = map_obj.MapObj(mapname)
+
 for det in range(1,20):
-    my_ps = comap2ps.comap2ps(mapname, decimate_z=256, det=det)
+    my_ps = comap2ps.comap2ps(maps, decimate_z=256, det=det)
 
     # my_ps.pseudo_ps = False
     # my_ps.calculate_mode_mixing_matrix()

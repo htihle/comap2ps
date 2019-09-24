@@ -4,16 +4,13 @@ import numpy.fft as fft
 import h5py
 from mpi4py import MPI
 
-
 import tools
 import master
 
 
 class comap2ps():
-    def __init__(self, mapfile, decimate_z=32, use_mpi=False, det=None):
+    def __init__(self, maps, decimate_z=32, use_mpi=False, det=None):
         self.pseudo_ps = True
-
-        self.mapfile = mapfile
         
         deg2mpc = 76.22  # at redshift 2.9
         dz2mpc = 699.62  # redshift 2.4 to 3.4
@@ -23,10 +20,11 @@ class comap2ps():
         redshift = np.linspace(2.9 - n_f/2*dz, 2.9 + n_f/2*dz, n_f + 1)
         if det is not None:
             self.det = det
-        with h5py.File(mapfile, mode="r") as my_file:
-            self.x = np.array(my_file['x'][:]) * deg2mpc#tools.cent2edge(np.array(my_file['x'][:])) * deg2mpc
-            self.y = np.array(my_file['y'][:]) * deg2mpc#tools.cent2edge(np.array(my_file['y'][:])) * deg2mpc
-
+        self.datamap = maps.maps[self.det-1].transpose()
+        self.rms = maps.rms[self.det-1].transpose()
+        self.x = maps.x * deg2mpc#tools.cent2edge(np.array(my_file['x'][:])) * deg2mpc
+        self.y = maps.y * deg2mpc#tools.cent2edge(np.array(my_file['y'][:])) * deg2mpc
+        
         self.z = tools.edge2cent(redshift * dz2mpc)
 
         self.nz = len(self.z)
@@ -58,12 +56,6 @@ class comap2ps():
 
 
     def decimate_in_frequency(self, n_end):
-        with h5py.File(self.mapfile, mode="r") as my_file:
-            # self.datamap = np.array(my_file['map_beam'][:]).transpose() / 0.5616
-            # self.rms = np.array(my_file['rms_beam'][:]).transpose()
-            self.datamap = np.array(my_file['map'][self.det-1]).transpose()
-            self.rms = np.array(my_file['rms'][self.det-1]).transpose()
-            # self.mask = np.array(my_file['mask'][:])
         sh = self.datamap.shape
         # print(sh)
         self.datamap = self.datamap.reshape((sh[0] * sh[1], sh[2], sh[3]))
@@ -109,7 +101,7 @@ class comap2ps():
             self.y = self.y[used_y[0]:used_y[-1]]
             self.z = self.z[used_z[0]:used_z[-1]]
         except IndexError:
-            print('Empty map', len(used_x), len(used_y), len(used_z))
+            print('Empty map', len(used_x), len(used_y), len(used_z), 'Feed: ', self.det)
             pass
 
 
