@@ -103,6 +103,9 @@ class comap2ps():
         except IndexError:
             print('Empty map', len(used_x), len(used_y), len(used_z), 'Feed: ', self.det)
             pass
+        self.used_x = used_x
+        self.used_y = used_y
+        self.used_z = used_z
 
 
     def calculate_mode_mixing_matrix(self, det=None):
@@ -142,6 +145,9 @@ class comap2ps():
             randmap = np.array(my_file['map_sim'][:, self.det-1])
             sh = randmap.shape
             randmap = randmap.reshape((sh[0], sh[1] * sh[2], sh[3], sh[4]))
+            randmap = randmap[:, self.used_x[0]:self.used_x[-1],
+                              self.used_y[0]:self.used_y[-1],
+                              self.used_z[0]:self.used_z[-1]]
             n_sims = sh[0]
         rms_ps = np.zeros((len(self.k_bin_edges) - 1, n_sims))
         for i in range(n_sims):
