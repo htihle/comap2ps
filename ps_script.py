@@ -28,7 +28,10 @@ for det in range(1,20):
     # np.save('M_inv', my_ps.M_inv)
 
     ps, k = my_ps.calculate_ps()
-    rms_mean, rms_sig = my_ps.run_noise_sims(100)
+
+    rms_mean, rms_sig = my_ps.noise_sims_from_file(mapname)
+
+    #rms_mean, rms_sig = my_ps.run_noise_sims(100)
 
     fig = plt.figure()
 

@@ -127,11 +127,31 @@ class comap2ps():
             randmap = randmap - randmap.flatten().mean()
             if self.pseudo_ps: 
                 rms_ps[:, i] = tools.compute_power_spec3d(
-                randmap * self.w, self.k_bin_edges, dx=self.dx, 
-                dy=self.dy, dz=self.dz)[0]
+                    randmap * self.w, self.k_bin_edges, dx=self.dx, 
+                    dy=self.dy, dz=self.dz)[0]
             else:
                 rms_ps[:, i] = np.dot(self.M_inv, tools.compute_power_spec3d(
                     randmap * self.w,self.k_bin_edges, dx=self.dx, 
+                    dy=self.dy, dz=self.dz)[0])
+        self.rms_ps_mean = np.mean(rms_ps, axis=1)
+        self.rms_ps_std = np.std(rms_ps, axis=1)
+        return self.rms_ps_mean, self.rms_ps_std
+
+    def noise_sims_from_file(self, mapfile):
+        with h5py.File(mapfile, mode="r") as my_file:
+            randmap = np.array(my_file['map_sim'][:, self.det-1])
+            sh = randmap.shape
+            randmap = randmap.reshape((sh[0], sh[1] * sh[2], sh[3], sh[4]))
+            n_sims = sh[0]
+        rms_ps = np.zeros((len(self.k_bin_edges) - 1, n_sims))
+        for i in range(n_sims):
+            if self.pseudo_ps:
+                rms_ps[:, i] = tools.compute_power_spec3d(
+                    randmap[i] * self.w, self.k_bin_edges, dx=self.dx, 
+                    dy=self.dy, dz=self.dz)[0]
+            else:
+                rms_ps[:, i] = np.dot(self.M_inv, tools.compute_power_spec3d(
+                    randmap[i] * self.w,self.k_bin_edges, dx=self.dx, 
                     dy=self.dy, dz=self.dz)[0])
         self.rms_ps_mean = np.mean(rms_ps, axis=1)
         self.rms_ps_std = np.std(rms_ps, axis=1)
