@@ -48,6 +48,6 @@ for det in range(1,20):
     ax2.set_xlabel(r'$k$ [(Mpc / $h$)${}^{-1}$]')
     plt.legend()
 
-    plt.savefig(mapname[:-3] + '_ps_%02i.pdf' % det, bbox_inches='tight')
+    plt.savefig('ps_%02i.pdf' % det, bbox_inches='tight')
     print('Done with feed ', det)
 
