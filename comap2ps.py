@@ -20,16 +20,17 @@ class comap2ps():
         redshift = np.linspace(2.9 - n_f/2*dz, 2.9 + n_f/2*dz, n_f + 1)
         if det is not None:
             self.det = det
-        self.datamap = maps.maps[self.det-1].transpose()
-        self.rms = maps.rms[self.det-1].transpose()
+        # print(maps.maps[self.det-1].shape)
+        self.datamap = maps.maps[self.det-1].transpose(3, 2, 0, 1)   # now the order is (x, y, sb, freq)
+        self.rms = maps.rms[self.det-1].transpose(3, 2, 0, 1)
         self.x = maps.x * deg2mpc#tools.cent2edge(np.array(my_file['x'][:])) * deg2mpc
         self.y = maps.y * deg2mpc#tools.cent2edge(np.array(my_file['y'][:])) * deg2mpc
-        
         self.z = tools.edge2cent(redshift * dz2mpc)
-
+        # self.datamap = np.zeros_like(self.datamap) + np.arange(64)[None, None, None, :]
         self.nz = len(self.z)
         self.nx = len(self.x)
         self.ny = len(self.y)
+        # print(self.datamap[40, 50, 0, :])
 
         self.decimate_in_frequency(decimate_z)
 
@@ -55,25 +56,23 @@ class comap2ps():
         self.k = tools.edge2cent(self.k_bin_edges)
 
 
-    def decimate_in_frequency(self, n_end):
+    def decimate_in_frequency(self, n_end): ##### understand this!!
         sh = self.datamap.shape
-        # print(sh)
-        self.datamap = self.datamap.reshape((sh[0] * sh[1], sh[2], sh[3]))
-        self.rms = self.rms.reshape((sh[0] * sh[1], sh[2], sh[3]))
+        self.datamap = self.datamap.reshape((sh[0], sh[1], sh[2] * sh[3])) 
+        self.rms = self.rms.reshape((sh[0], sh[1], sh[2] * sh[3]))
         self.mask = np.zeros_like(self.rms)
-        self.mask[(self.datamap != 0.0)] = 1.0
+        self.mask[(self.rms != 0.0)] = 1.0
         where = (self.mask == 1.0)
         self.w = np.zeros_like(self.rms)
         self.w[where] = np.mean(self.rms[where].flatten() ** 2) / self.rms[where] ** 2
 
         n_dec = self.nz // n_end
-
         self.datamap = np.sum(
             (self.datamap * self.w).reshape((self.nx, self.ny, self.nz // n_dec, n_dec)), axis=3
         ) / np.sum(
             self.w.reshape((self.nx, self.ny, self.nz // n_dec, n_dec)), axis=3
         )
-        
+        # print('after: ', self.datamap.shape)
         self.w = np.sum(
             self.w.reshape((self.nx, self.ny, self.nz // n_dec, n_dec)), axis=3
         )
@@ -83,6 +82,7 @@ class comap2ps():
         ))
 
         self.datamap[(self.w == 0)] = 0.0
+        # print(self.datamap[40, 50, :])
         self.nz = self.nz // n_dec
         self.mask = np.zeros_like(self.w)
         self.mask[(self.w > 0)] = 1.0
@@ -142,9 +142,9 @@ class comap2ps():
 
     def noise_sims_from_file(self, mapfile):
         with h5py.File(mapfile, mode="r") as my_file:
-            randmap = np.array(my_file['map_sim'][:, self.det-1])
+            randmap = np.array(my_file['map_sim'][:, self.det-1]).transpose(0, 4, 3, 1, 2)  # order is now (nsim, x, y, sb, freq)
             sh = randmap.shape
-            randmap = randmap.reshape((sh[0], sh[1] * sh[2], sh[3], sh[4]))
+            randmap = randmap.reshape((sh[0], sh[1], sh[2], sh[3] * sh[4]))
             randmap = randmap[:, self.used_x[0]:self.used_x[-1],
                               self.used_y[0]:self.used_y[-1],
                               self.used_z[0]:self.used_z[-1]]

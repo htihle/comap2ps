@@ -31,7 +31,7 @@ for det in range(1,20):
 
     rms_mean, rms_sig = my_ps.noise_sims_from_file(mapname)
 
-    #rms_mean, rms_sig = my_ps.run_noise_sims(100)
+    # rms_mean, rms_sig = my_ps.run_noise_sims(100)
 
     fig = plt.figure()
 
