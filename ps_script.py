@@ -19,7 +19,6 @@ except IndexError:
     sys.exit(1)
 
 maps = map_obj.MapObj(mapname)
-
 #for det in range(1,20):
 my_ps = comap2ps.comap2ps(maps, decimate_z=256)
 
@@ -59,4 +58,3 @@ plt.legend()
 plt.savefig('ps.pdf', bbox_inches='tight')
 plt.show()
 # print('Done with feed ', det)
-
