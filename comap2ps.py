@@ -21,8 +21,8 @@ class comap2ps():
         if det is not None:
             self.det = det
         # print(maps.maps[self.det-1].shape)
-        self.datamap = maps.maps[self.det-1].transpose(3, 2, 0, 1)   # now the order is (x, y, sb, freq)
-        self.rms = maps.rms[self.det-1].transpose(3, 2, 0, 1)
+        self.datamap = maps.maps.transpose(3, 2, 0, 1)  #maps.maps[self.det-1].transpose(3, 2, 0, 1)   # now the order is (x, y, sb, freq)
+        self.rms = maps.rms.transpose(3, 2, 0, 1)  #maps.rms[self.det-1].transpose(3, 2, 0, 1)
         self.x = maps.x * deg2mpc#tools.cent2edge(np.array(my_file['x'][:])) * deg2mpc
         self.y = maps.y * deg2mpc#tools.cent2edge(np.array(my_file['y'][:])) * deg2mpc
         self.z = tools.edge2cent(redshift * dz2mpc)
@@ -143,12 +143,17 @@ class comap2ps():
     def noise_sims_from_file(self, mapfile):
         with h5py.File(mapfile, mode="r") as my_file:
             randmap = np.array(my_file['map_sim'][:, self.det-1]).transpose(0, 4, 3, 1, 2)  # order is now (nsim, x, y, sb, freq)
-            sh = randmap.shape
-            randmap = randmap.reshape((sh[0], sh[1], sh[2], sh[3] * sh[4]))
+        sh = randmap.shape
+        n_sims = sh[0]
+        randmap = randmap.reshape((sh[0], sh[1], sh[2], sh[3] * sh[4]))
+        try: 
             randmap = randmap[:, self.used_x[0]:self.used_x[-1],
                               self.used_y[0]:self.used_y[-1],
                               self.used_z[0]:self.used_z[-1]]
-            n_sims = sh[0]
+        except IndexError:
+            print('Empty map', len(self.used_x), len(self.used_y), len(self.used_z), 'Feed: ', self.det)
+            randmap = np.zeros((n_sims, self.nx, self.ny, self.nz))
+        
         rms_ps = np.zeros((len(self.k_bin_edges) - 1, n_sims))
         for i in range(n_sims):
             if self.pseudo_ps:
@@ -160,5 +165,5 @@ class comap2ps():
                     randmap[i] * self.w,self.k_bin_edges, dx=self.dx, 
                     dy=self.dy, dz=self.dz)[0])
         self.rms_ps_mean = np.mean(rms_ps, axis=1)
-        self.rms_ps_std = np.std(rms_ps, axis=1)
+        self.rms_ps_std = np.std(rms_ps, axis=1, ddof=1)
         return self.rms_ps_mean, self.rms_ps_std

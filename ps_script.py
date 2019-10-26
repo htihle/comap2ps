@@ -20,34 +20,43 @@ except IndexError:
 
 maps = map_obj.MapObj(mapname)
 
-for det in range(1,20):
-    my_ps = comap2ps.comap2ps(maps, decimate_z=256, det=det)
+#for det in range(1,20):
+my_ps = comap2ps.comap2ps(maps, decimate_z=256)
 
-    # my_ps.pseudo_ps = False
-    # my_ps.calculate_mode_mixing_matrix()
-    # np.save('M_inv', my_ps.M_inv)
+# my_ps.pseudo_ps = False
+# my_ps.calculate_mode_mixing_matrix()
+# np.save('M_inv', my_ps.M_inv)
 
-    ps, k = my_ps.calculate_ps()
+ps, k = my_ps.calculate_ps()
 
-    rms_mean, rms_sig = my_ps.noise_sims_from_file(mapname)
+#rms_mean, rms_sig = my_ps.noise_sims_from_file(mapname)
+#print(rms_mean)
+#print(ps)
+#print(rms_sig)
+rms_mean, rms_sig = my_ps.run_noise_sims(100)
+# print(rms_mean)
+# print(ps)
+# print(rms_sig)
+    
+fig = plt.figure()
 
-    # rms_mean, rms_sig = my_ps.run_noise_sims(100)
+ax1 = fig.add_subplot(211)
+ax1.errorbar(k, ps, rms_sig, fmt='o', label=r'$P_{data}(k)$')
+ax1.plot(k, rms_mean, 'k', label=r'$P_{noise}(k)$', alpha=0.4)
+ax1.set_ylabel(r'$P(k)$ [K${}^2$ (Mpc / $h$)${}^3$]')
+ax1.set_ylim(0, 0.1)
+plt.legend()
 
-    fig = plt.figure()
+ax2 = fig.add_subplot(212)
+ax2.errorbar(k, (ps - rms_mean) / rms_sig, rms_sig / rms_sig, fmt='o', label=r'$P_{data}(k) - P_{noise}(k)$')
+ax2.plot(k, 0 * rms_mean, 'k', alpha=0.4)
+ax2.set_ylabel(r'$P(k) / \sigma_P$')
+ax2.set_xlabel(r'$k$ [(Mpc / $h$)${}^{-1}$]')
+ax2.set_ylim(-7, 7)
+plt.legend()
 
-    ax1 = fig.add_subplot(211)
-    ax1.errorbar(k, ps - rms_mean, rms_sig, fmt='o', label=r'$P_{data}(k) - P_{noise}(k)$, feed %i' % det)
-    ax1.plot(k, 0 * rms_mean, 'k', alpha=0.4)
-    ax1.set_ylabel(r'$P(k)$ [K${}^2$ (Mpc / $h$)${}^3$]')
-    plt.legend()
 
-    ax2 = fig.add_subplot(212)
-    ax2.errorbar(k, (ps - rms_mean) / rms_sig, rms_sig / rms_sig, fmt='o', label=r'$P_{data}(k) - P_{noise}(k)$, feed %i' % det)
-    ax2.plot(k, 0 * rms_mean, 'k', alpha=0.4)
-    ax2.set_ylabel(r'$P(k) / \sigma_P$')
-    ax2.set_xlabel(r'$k$ [(Mpc / $h$)${}^{-1}$]')
-    plt.legend()
-
-    plt.savefig(mapname[:-3] + '_ps_%02i.pdf' % det, bbox_inches='tight')
-    print('Done with feed ', det)
+plt.savefig('ps.pdf', bbox_inches='tight')
+plt.show()
+# print('Done with feed ', det)
 

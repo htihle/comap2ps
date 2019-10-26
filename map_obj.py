@@ -6,5 +6,5 @@ class MapObj():
         with h5py.File(mapfile, mode="r") as my_file:
             self.x = np.array(my_file['x'][:])
             self.y = np.array(my_file['y'][:])
-            self.maps = np.array(my_file['map'][:])
-            self.rms = np.array(my_file['rms'][:])
+            self.maps = np.array(my_file['map_beam'][:])
+            self.rms = np.array(my_file['rms_beam'][:]) * 2
