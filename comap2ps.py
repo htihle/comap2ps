@@ -18,27 +18,38 @@ class comap2ps():
         dz = (1+2.9) ** 2 * 32.2e-3 / 115
         n_f = 256#64
         redshift = np.linspace(2.9 - n_f/2*dz, 2.9 + n_f/2*dz, n_f + 1)
+        
         if det is not None:
             self.det = det
+            self.datamap = maps.maps[self.det-1].transpose(3, 2, 0, 1)
+            self.rms = maps.rms[self.det-1].transpose(3, 2, 0, 1)
+        else:
+            self.datamap = maps.map_beam.transpose(3, 2, 0, 1)  #maps.maps[self.det-1].transpose(3, 2, 0, 1)   # now the order is (x, y, sb, freq)
+            self.rms = maps.rms_beam.transpose(3, 2, 0, 1)  #maps.rms[self.det-1].transpose(3, 2, 0, 1)
+            
         # print(maps.maps[self.det-1].shape)
-        self.datamap = maps.maps.transpose(3, 2, 0, 1)  #maps.maps[self.det-1].transpose(3, 2, 0, 1)   # now the order is (x, y, sb, freq)
-        self.rms = maps.rms.transpose(3, 2, 0, 1)  #maps.rms[self.det-1].transpose(3, 2, 0, 1)
-        self.x = maps.x * deg2mpc#tools.cent2edge(np.array(my_file['x'][:])) * deg2mpc
-        self.y = maps.y * deg2mpc#tools.cent2edge(np.array(my_file['y'][:])) * deg2mpc
+        # self.datamap = maps.maps.transpose(3, 2, 0, 1)  #maps.maps[self.det-1].transpose(3, 2, 0, 1)   # now the order is (x, y, sb, freq)
+        # self.rms = maps.rms.transpose(3, 2, 0, 1)  #maps.rms[self.det-1].transpose(3, 2, 0, 1)
+        meandec = np.mean(maps.y)
+        self.x = maps.x * deg2mpc * np.cos(meandec * np.pi / 180) #tools.cent2edge(np.array(my_file['x'][:])) * deg2mpc  # ra
+        self.y = maps.y * deg2mpc #tools.cent2edge(np.array(my_file['y'][:])) * deg2mpc  # dec
+        # print(maps.x)
+        # print(maps.y)
         self.z = tools.edge2cent(redshift * dz2mpc)
         # self.datamap = np.zeros_like(self.datamap) + np.arange(64)[None, None, None, :]
         self.nz = len(self.z)
         self.nx = len(self.x)
         self.ny = len(self.y)
         # print(self.datamap[40, 50, 0, :])
-
+        # print(self.x[1] - self.x[0])
+        # print('dx', self.y[1] - self.y[0])
         self.decimate_in_frequency(decimate_z)
-
+        # print(self.x[1] - self.x[0])
         self.remove_whitespace()
-
         self.dx = self.x[1] - self.x[0]
         self.dy = self.y[1] - self.y[0]
         self.dz = self.z[1] - self.z[0]
+        # print('dx', self.dy)
         self.nz = len(self.z)
         self.nx = len(self.x)
         self.ny = len(self.y)
@@ -48,7 +59,11 @@ class comap2ps():
             + np.max(np.abs(fft.fftfreq(len(self.y), self.dy))) ** 2
             + np.max(np.abs(fft.fftfreq(len(self.z), self.dz))) ** 2
         )
-
+        # print(kmax)
+        # print(np.sqrt(sum([(1.0 / (2*d))**2 for d in [self.dx, self.dy, self.dz]])))
+        # print((1.0 / (2*self.dx)))
+        # print((1.0 / (2*self.dy)))
+        # print((1.0 / (2*self.dz)))
         n_k = 15
         # print(kmax)
         # kmax = 0.23#0.155
