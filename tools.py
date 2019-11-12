@@ -104,6 +104,25 @@ def compute_power_spec3d(x, k_bin_edges, dx=1, dy=1, dz=1):
     return Pk, k, nmodes
 
 
+def compute_cross_spec3d(x, k_bin_edges, dx=1, dy=1, dz=1):
+    n_x, n_y, n_z = x[0].shape
+    Ck_3D = np.real(fft.fftn(x[0]) * np.conj(fft.fftn(x[1]))) * dx * dy * dz / (n_x * n_y * n_z)
+
+    kx = np.fft.fftfreq(n_x, dx)
+    ky = np.fft.fftfreq(n_y, dy)
+    kz = np.fft.fftfreq(n_z, dz)
+
+    kgrid = np.sqrt(sum(ki ** 2 for ki in np.meshgrid(kx, ky, kz, indexing='ij')))
+
+    Ck_nmodes = np.histogram(kgrid[kgrid > 0], bins=k_bin_edges, weights=Ck_3D[kgrid > 0])[0]
+    nmodes = np.histogram(kgrid[kgrid > 0], bins=k_bin_edges)[0]
+
+    k = (k_bin_edges[1:] + k_bin_edges[:-1]) / 2.0
+    Ck = np.zeros_like(k)
+    Ck[np.where(nmodes > 0)] = Ck_nmodes[np.where(nmodes > 0)] / nmodes[np.where(nmodes > 0)]
+    return Ck, k, nmodes
+
+
 def distribute_indices(n_indices, n_processes, my_rank):
     divide = n_indices // n_processes
     leftovers = n_indices % n_processes
