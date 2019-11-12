@@ -3,6 +3,8 @@ import matplotlib.pyplot as plt
 import numpy.fft as fft
 import h5py
 from mpi4py import MPI
+import glob
+
 
 import tools
 import master
@@ -142,7 +144,7 @@ class comap2ps():
         rms_ps = np.zeros((len(self.k_bin_edges) - 1, n_sims))
         for i in range(n_sims):
             randmap = self.rms * np.random.randn(*self.rms.shape)
-            randmap = randmap - randmap.flatten().mean()
+#            randmap = randmap - randmap.flatten().mean()
             if self.pseudo_ps: 
                 rms_ps[:, i] = tools.compute_power_spec3d(
                     randmap * self.w, self.k_bin_edges, dx=self.dx, 
@@ -156,29 +158,57 @@ class comap2ps():
         return self.rms_ps_mean, self.rms_ps_std
 
     def noise_sims_from_file(self, mapfile):
-        with h5py.File(mapfile, mode="r") as my_file:
-            randmap = np.array(my_file['map_sim'][:, self.det-1]).transpose(0, 4, 3, 1, 2)  # order is now (nsim, x, y, sb, freq)
-        sh = randmap.shape
-        n_sims = sh[0]
-        randmap = randmap.reshape((sh[0], sh[1], sh[2], sh[3] * sh[4]))
-        try: 
-            randmap = randmap[:, self.used_x[0]:self.used_x[-1],
-                              self.used_y[0]:self.used_y[-1],
-                              self.used_z[0]:self.used_z[-1]]
-        except IndexError:
-            print('Empty map', len(self.used_x), len(self.used_y), len(self.used_z), 'Feed: ', self.det)
-            randmap = np.zeros((n_sims, self.nx, self.ny, self.nz))
-        
+        prefix, _, mapname = mapfile.rpartition("/")
+         #+ '*.h5')
+        sim_list = glob.glob(prefix + '/sims/' + mapname[:-3].replace('map', 'sim') + '*.h5')
+        n_sims = len(sim_list)
+        print(n_sims)
         rms_ps = np.zeros((len(self.k_bin_edges) - 1, n_sims))
         for i in range(n_sims):
+            print(sim_list[i])
+            with h5py.File(sim_list[i], mode="r") as my_file:
+                randmap = np.array(my_file['map_sim']).transpose(3, 2, 0, 1) #.transpose(0, 4, 3, 1, 2)  
+                sh = randmap.shape
+                randmap = randmap.reshape((sh[0], sh[1], sh[2] * sh[3]))
+                randmap = randmap[self.used_x[0]:self.used_x[-1],
+                                  self.used_y[0]:self.used_y[-1],
+                                  self.used_z[0]:self.used_z[-1]]
             if self.pseudo_ps:
                 rms_ps[:, i] = tools.compute_power_spec3d(
-                    randmap[i] * self.w, self.k_bin_edges, dx=self.dx, 
+                    randmap * self.w, self.k_bin_edges, dx=self.dx, 
                     dy=self.dy, dz=self.dz)[0]
             else:
                 rms_ps[:, i] = np.dot(self.M_inv, tools.compute_power_spec3d(
-                    randmap[i] * self.w,self.k_bin_edges, dx=self.dx, 
+                    randmap * self.w,self.k_bin_edges, dx=self.dx, 
                     dy=self.dy, dz=self.dz)[0])
         self.rms_ps_mean = np.mean(rms_ps, axis=1)
         self.rms_ps_std = np.std(rms_ps, axis=1, ddof=1)
         return self.rms_ps_mean, self.rms_ps_std
+
+    # def noise_sims_from_file(self, mapfile):
+    #     with h5py.File(mapfile, mode="r") as my_file:
+    #         randmap = np.array(my_file['map_sim'][:, self.det-1]).transpose(0, 4, 3, 1, 2)  # order is now (nsim, x, y, sb, freq)
+    #     sh = randmap.shape
+    #     n_sims = sh[0]
+    #     randmap = randmap.reshape((sh[0], sh[1], sh[2], sh[3] * sh[4]))
+    #     try: 
+    #         randmap = randmap[:, self.used_x[0]:self.used_x[-1],
+    #                           self.used_y[0]:self.used_y[-1],
+    #                           self.used_z[0]:self.used_z[-1]]
+    #     except IndexError:
+    #         ##print('Empty map', len(self.used_x), len(self.used_y), len(self.used_z), 'Feed: ', self.det)
+    #         randmap = np.zeros((n_sims, self.nx, self.ny, self.nz))
+        
+    #     rms_ps = np.zeros((len(self.k_bin_edges) - 1, n_sims))
+    #     for i in range(n_sims):
+    #         if self.pseudo_ps:
+    #             rms_ps[:, i] = tools.compute_power_spec3d(
+    #                 randmap[i] * self.w, self.k_bin_edges, dx=self.dx, 
+    #                 dy=self.dy, dz=self.dz)[0]
+    #         else:
+    #             rms_ps[:, i] = np.dot(self.M_inv, tools.compute_power_spec3d(
+    #                 randmap[i] * self.w,self.k_bin_edges, dx=self.dx, 
+    #                 dy=self.dy, dz=self.dz)[0])
+    #     self.rms_ps_mean = np.mean(rms_ps, axis=1)
+    #     self.rms_ps_std = np.std(rms_ps, axis=1, ddof=1)
+    #     return self.rms_ps_mean, self.rms_ps_std
