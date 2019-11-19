@@ -18,7 +18,7 @@ class comap2ps():
         dz2mpc = 699.62  # redshift 2.4 to 3.4
         #freq = np.linspace(26, 34, 257)
         dz = (1+2.9) ** 2 * 32.2e-3 / 115
-        n_f = 256#64
+        n_f = 256  # 64
         redshift = np.linspace(2.9 - n_f/2*dz, 2.9 + n_f/2*dz, n_f + 1)
         
         if det is not None:
@@ -57,10 +57,16 @@ class comap2ps():
         self.ny = len(self.y)
         # print(self.nx, self.ny, self.nz)
         kmax = np.sqrt(
-            np.max(np.abs(fft.fftfreq(len(self.x), self.dx))) ** 2
-            + np.max(np.abs(fft.fftfreq(len(self.y), self.dy))) ** 2
-            + np.max(np.abs(fft.fftfreq(len(self.z), self.dz))) ** 2
+            np.max(np.abs(fft.fftfreq(len(self.x), self.dx)) * 2 * np.pi) ** 2
+            + np.max(np.abs(fft.fftfreq(len(self.y), self.dy)) * 2 * np.pi) ** 2
+            + np.max(np.abs(fft.fftfreq(len(self.z), self.dz)) * 2 * np.pi) ** 2
         )
+
+        # kmax = np.sqrt(
+        #     np.max(np.abs(fft.fftfreq(len(self.x), self.dx))) ** 2
+        #     + np.max(np.abs(fft.fftfreq(len(self.y), self.dy))) ** 2
+        #     + np.max(np.abs(fft.fftfreq(len(self.z), self.dz))) ** 2
+        # )
         # print(kmax)
         # print(np.sqrt(sum([(1.0 / (2*d))**2 for d in [self.dx, self.dy, self.dz]])))
         # print((1.0 / (2*self.dx)))

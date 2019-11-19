@@ -19,18 +19,19 @@ class comap2xs():
         n_f = 256  #64
         redshift = np.linspace(2.9 - n_f/2*dz, 2.9 + n_f/2*dz, n_f + 1)
         sh = maps.map_beam.transpose(3, 2, 0, 1).shape
-        self.datamap = np.zeros((2, *sh))
-        self.rms = np.zeros((2, *sh))
+        self.datamap = [np.zeros(sh), np.zeros(sh)]
+        self.rms = [np.zeros(sh), np.zeros(sh)]
         self.datamap[0] = maps.map_beam.transpose(3, 2, 0, 1)  #maps.maps[self.det-1].transpose(3, 2, 0, 1)   # now the order is (x, y, sb, freq)
         self.rms[0] = maps.rms_beam.transpose(3, 2, 0, 1)  #maps.rms[self.det-1].transpose(3, 2, 0, 1)
         self.datamap[1] = maps2.map_beam.transpose(3, 2, 0, 1)  #maps.maps[self.det-1].transpose(3, 2, 0, 1)   # now the order is (x, y, sb, freq)
         self.rms[1] = maps2.rms_beam.transpose(3, 2, 0, 1)  #maps.rms[self.det-1].transpose(3, 2, 0, 1)
-        self.w = np.zeros_like(self.datamap)
+        self.w = [np.zeros(sh), np.zeros(sh)]
         self.mask = np.zeros_like(self.rms[0]) + 1.0
         self.mask[(self.rms[0] == 0.0)] = 0.0
         self.mask[(self.rms[1] == 0.0)] = 0.0
 
         meandec = np.mean(maps.y)
+
         self.x = maps.x * deg2mpc * np.cos(meandec * np.pi / 180) #tools.cent2edge(np.array(my_file['x'][:])) * deg2mpc  # ra
         self.y = maps.y * deg2mpc #tools.cent2edge(np.array(my_file['y'][:])) * deg2mpc  # dec
 
@@ -43,6 +44,7 @@ class comap2xs():
         self.decimate_in_frequency(decimate_z)
 
         self.remove_whitespace()
+
         self.dx = self.x[1] - self.x[0]
         self.dy = self.y[1] - self.y[0]
         self.dz = self.z[1] - self.z[0]
@@ -51,9 +53,9 @@ class comap2xs():
         self.ny = len(self.y)
 
         kmax = np.sqrt(
-            np.max(np.abs(fft.fftfreq(len(self.x), self.dx))) ** 2
-            + np.max(np.abs(fft.fftfreq(len(self.y), self.dy))) ** 2
-            + np.max(np.abs(fft.fftfreq(len(self.z), self.dz))) ** 2
+            np.max(np.abs(fft.fftfreq(len(self.x), self.dx)) * 2 * np.pi) ** 2
+            + np.max(np.abs(fft.fftfreq(len(self.y), self.dy)) * 2 * np.pi) ** 2
+            + np.max(np.abs(fft.fftfreq(len(self.z), self.dz)) * 2 * np.pi) ** 2
         )
 
         n_k = 15
@@ -70,16 +72,16 @@ class comap2xs():
             
             self.datamap[i] = self.datamap[i].reshape((sh[0], sh[1], sh[2] * sh[3])) 
             self.rms[i] = self.rms[i].reshape((sh[0], sh[1], sh[2] * sh[3]))
+            self.w[i] = self.w[i].reshape((sh[0], sh[1], sh[2] * sh[3]))
             
             
-            
-            self.w[i, where] = np.mean(self.rms[i][where].flatten() ** 2) / self.rms[i, where] ** 2
+            self.w[i][where] = 1 / np.sqrt(np.mean(1 / self.rms[i][where].flatten() ** 4)) / self.rms[i][where] ** 2
 
             n_dec = self.nz // n_end
             self.datamap[i] = np.sum(
                 (self.datamap[i] * self.w[i]).reshape((self.nx, self.ny, self.nz // n_dec, n_dec)), axis=3
             ) / np.sum(
-                self.w.reshape((self.nx, self.ny, self.nz // n_dec, n_dec)), axis=3
+                self.w[i].reshape((self.nx, self.ny, self.nz // n_dec, n_dec)), axis=3
             )
 
             self.w[i] = np.sum(
@@ -90,7 +92,7 @@ class comap2xs():
                 (1 / self.rms[i] ** 2).reshape((self.nx, self.ny, self.nz // n_dec, n_dec)), axis=3
             ))
 
-        self.datamap[(self.w == 0)] = 0.0
+            self.datamap[i][(self.w[i] == 0)] = 0.0
 
         self.nz = self.nz // n_dec
         self.mask = np.zeros_like(self.w[0]) + 1.0
@@ -102,6 +104,7 @@ class comap2xs():
         used_x = np.where(self.mask.sum(axis=(1, 2)))[0]
         used_y = np.where(self.mask.sum(axis=(0, 2)))[0]
         used_z = np.where(self.mask.sum(axis=(0, 1)))[0]
+        
         try:
             for i in range(2):
                 self.datamap[i] = self.datamap[i][used_x[0]:used_x[-1], used_y[0]:used_y[-1], used_z[0]:used_z[-1]]
@@ -136,23 +139,23 @@ class comap2xs():
 
     def calculate_xs(self, det=None):
         xs_with_weight, k, _ = tools.compute_cross_spec3d(
-            self.datamap * self.w, self.k_bin_edges, dx=self.dx, dy=self.dy, dz=self.dz)
+            (self.datamap[0] * self.w[0], self.datamap[1] * self.w[1]),
+            self.k_bin_edges, dx=self.dx, dy=self.dy, dz=self.dz)
         self.data_ps = xs_with_weight
         return self.data_ps, k
 
     def run_noise_sims(self, n_sims):
-        rms_ps = np.zeros((len(self.k_bin_edges) - 1, n_sims))
+        rms_xs = np.zeros((len(self.k_bin_edges) - 1, n_sims))
+        randmap = [np.zeros(self.rms[0].shape), np.zeros(self.rms[0].shape)]
         for i in range(n_sims):
-            randmap = self.rms * np.random.randn(*self.rms.shape)
-            randmap = randmap - randmap.flatten().mean()
-            if self.pseudo_ps: 
-                rms_ps[:, i] = tools.compute_power_spec3d(
-                    randmap * self.w, self.k_bin_edges, dx=self.dx, 
-                    dy=self.dy, dz=self.dz)[0]
-            else:
-                rms_ps[:, i] = np.dot(self.M_inv, tools.compute_power_spec3d(
-                    randmap * self.w,self.k_bin_edges, dx=self.dx, 
-                    dy=self.dy, dz=self.dz)[0])
-        self.rms_ps_mean = np.mean(rms_ps, axis=1)
-        self.rms_ps_std = np.std(rms_ps, axis=1)
-        return self.rms_ps_mean, self.rms_ps_std
+            for j in range(2):
+                randmap[j] = self.rms[j] * np.random.randn(*self.rms[j].shape)
+                randmap[j] = randmap[j] - randmap[j].flatten().mean()
+            rms_xs[:, i] = tools.compute_cross_spec3d(
+                (randmap[0] * self.w[0], randmap[1] * self.w[1]),
+                self.k_bin_edges, dx=self.dx, 
+                dy=self.dy, dz=self.dz)[0]
+        
+        self.rms_xs_mean = np.mean(rms_xs, axis=1)
+        self.rms_xs_std = np.std(rms_xs, axis=1)
+        return self.rms_xs_mean, self.rms_xs_std

@@ -89,9 +89,9 @@ def compute_power_spec3d(x, k_bin_edges, dx=1, dy=1, dz=1):
     n_x, n_y, n_z = x.shape
     Pk_3D = np.abs(fft.fftn(x)) ** 2 * dx * dy * dz / (n_x * n_y * n_z)
 
-    kx = np.fft.fftfreq(n_x, dx)
-    ky = np.fft.fftfreq(n_y, dy)
-    kz = np.fft.fftfreq(n_z, dz)
+    kx = np.fft.fftfreq(n_x, dx) * 2 * np.pi
+    ky = np.fft.fftfreq(n_y, dy) * 2 * np.pi
+    kz = np.fft.fftfreq(n_z, dz) * 2 * np.pi
 
     kgrid = np.sqrt(sum(ki ** 2 for ki in np.meshgrid(kx, ky, kz, indexing='ij')))
 
@@ -108,9 +108,9 @@ def compute_cross_spec3d(x, k_bin_edges, dx=1, dy=1, dz=1):
     n_x, n_y, n_z = x[0].shape
     Ck_3D = np.real(fft.fftn(x[0]) * np.conj(fft.fftn(x[1]))) * dx * dy * dz / (n_x * n_y * n_z)
 
-    kx = np.fft.fftfreq(n_x, dx)
-    ky = np.fft.fftfreq(n_y, dy)
-    kz = np.fft.fftfreq(n_z, dz)
+    kx = np.fft.fftfreq(n_x, dx) * 2 * np.pi
+    ky = np.fft.fftfreq(n_y, dy) * 2 * np.pi
+    kz = np.fft.fftfreq(n_z, dz) * 2 * np.pi
 
     kgrid = np.sqrt(sum(ki ** 2 for ki in np.meshgrid(kx, ky, kz, indexing='ij')))
 
