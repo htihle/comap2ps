@@ -28,6 +28,7 @@ my_ps = comap2ps.comap2ps(maps, decimate_z=256)
 
 ps, k = my_ps.calculate_ps()
 
+
 #rms_mean, rms_sig = my_ps.noise_sims_from_file(mapname)
 #print(rms_mean)
 #print(ps)
@@ -37,32 +38,53 @@ rms_mean, rms_sig = my_ps.run_noise_sims(100)
 # print(ps)
 # print(rms_sig)
 
-# ps_th = np.load('ps_cube.npy')
-# k_th = np.load('k_cube.npy')
+ps_th = np.load('ps.npy')
+k_th = np.load('k.npy')
 # h = 0.7
+my_ps.make_h5()
+lim = np.mean(np.abs(ps[6:]))  #3
 
-lim = np.mean(np.abs(ps[6:])) * 3
 
+# ps *= K2muK ** 2
+
+kPk = False
+# print(my_ps.nmodes)
     
 fig = plt.figure()
 
-ax1 = fig.add_subplot(211)
-ax1.errorbar(k, ps, rms_sig, fmt='o', label=r'$\tilde{P}_{data}(k)$')
-ax1.plot(k, rms_mean, 'k', label=r'$\tilde{P}_{noise}(k)$', alpha=0.4)
-# ax1.plot(k_th / h, ps_th * h ** 3 * 10, 'r--', label=r'$10 * P_{Theory}(k)$')
-ax1.set_ylabel(r'$\tilde{P}(k)$ [K${}^2$ (Mpc / $h$)${}^3$]')
-ax1.set_ylim(0, lim)  # ax1.set_ylim(0, 0.1)
-plt.legend()
+if kPk:
+    ax1 = fig.add_subplot(211)
+    ax1.errorbar(k,  k * ps, k * rms_sig, fmt='o', label=r'$\tilde{P}_{data}(k)$')
+    ax1.plot(k, k * rms_mean, 'k', label=r'$\tilde{P}_{noise}(k)$', alpha=0.4)
+    ax1.plot(k_th, k_th * ps_th, 'r--', label=r'$P_{Theory}(k)$')
+    ax1.set_ylabel(r'$k\tilde{P}(k)$ [K${}^2$ (Mpc)${}^2$]')
+    ax1.set_ylim(1e-0, 1e4)  # ax1.set_ylim(0, 0.1)
+    ax1.set_yscale('log')
+    ax1.set_xscale('log')
+    plt.grid()
+    plt.legend()
+else: 
+    ax1 = fig.add_subplot(211)
+    ax1.errorbar(k,  ps, rms_sig, fmt='o', label=r'$\tilde{P}_{data}(k)$')
+    ax1.plot(k, rms_mean, 'k', label=r'$\tilde{P}_{noise}(k)$', alpha=0.4)
+    ax1.plot(k_th, ps_th * 10, 'r--', label=r'$10 * P_{Theory}(k)$')
+    ax1.set_ylabel(r'$\tilde{P}(k)$ [K${}^2$ (Mpc)${}^3$]')
+    # ax1.set_ylim(1e3, 1e8)  # ax1.set_ylim(0, 0.1)
+    ax1.set_yscale('log')
+    ax1.set_xscale('log')
+    plt.grid()
+    plt.legend()
 
 ax2 = fig.add_subplot(212)
 ax2.errorbar(k, (ps - rms_mean) / rms_sig, rms_sig / rms_sig, fmt='o', label=r'$\tilde{P}_{data}(k) - \tilde{P}_{noise}(k)$')
 ax2.plot(k, 0 * rms_mean, 'k', alpha=0.4)
 ax2.set_ylabel(r'$\tilde{P}(k) / \sigma_\tilde{P}$')
-ax2.set_xlabel(r'$k$ [(Mpc / $h$)${}^{-1}$]')
+ax2.set_xlabel(r'$k$ [Mpc${}^{-1}$]')
 ax2.set_ylim(-7, 20)
+ax2.set_xscale('log')
 plt.legend()
 
 
-plt.savefig('ps_co2.pdf', bbox_inches='tight')
+plt.savefig('ps.pdf', bbox_inches='tight')
 plt.show()
 # print('Done with feed ', det)

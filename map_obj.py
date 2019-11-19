@@ -7,7 +7,7 @@ class MapObj():
             self.x = np.array(my_file['x'][:])
             self.y = np.array(my_file['y'][:])
             self.map_beam = np.array(my_file['map_beam'][:])
-            self.rms_beam = np.array(my_file['rms_beam'][:]) * np.sqrt(8) #* 2.4 #2.7
+            self.rms_beam = np.array(my_file['rms_beam'][:])
             if all_feeds:
                 self.maps = np.array(my_file['map'][:])
-                self.rms = np.array(my_file['rms'][:]) #* 2
+                self.rms = np.array(my_file['rms'][:])

@@ -13,9 +13,10 @@ import master
 class comap2ps():
     def __init__(self, maps, decimate_z=32, use_mpi=False, det=None):
         self.pseudo_ps = True
-        
-        deg2mpc = 76.22  # at redshift 2.9
-        dz2mpc = 699.62  # redshift 2.4 to 3.4
+        h = 0.7
+        deg2mpc = 76.22 / h  # at redshift 2.9
+        dz2mpc = 699.62 / h # redshift 2.4 to 3.4
+        K2muK = 1e6
         #freq = np.linspace(26, 34, 257)
         dz = (1+2.9) ** 2 * 32.2e-3 / 115
         n_f = 256  # 64
@@ -23,15 +24,12 @@ class comap2ps():
         
         if det is not None:
             self.det = det
-            self.datamap = maps.maps[self.det-1].transpose(3, 2, 0, 1)
-            self.rms = maps.rms[self.det-1].transpose(3, 2, 0, 1)
+            self.datamap = maps.maps[self.det-1].transpose(3, 2, 0, 1) * K2muK
+            self.rms = maps.rms[self.det-1].transpose(3, 2, 0, 1) * K2muK
         else:
-            self.datamap = maps.map_beam.transpose(3, 2, 0, 1)  #maps.maps[self.det-1].transpose(3, 2, 0, 1)   # now the order is (x, y, sb, freq)
-            self.rms = maps.rms_beam.transpose(3, 2, 0, 1)  #maps.rms[self.det-1].transpose(3, 2, 0, 1)
+            self.datamap = maps.map_beam.transpose(3, 2, 0, 1) * K2muK #maps.maps[self.det-1].transpose(3, 2, 0, 1)   # now the order is (x, y, sb, freq)
+            self.rms = maps.rms_beam.transpose(3, 2, 0, 1) * K2muK #maps.rms[self.det-1].transpose(3, 2, 0, 1)
             
-        # print(maps.maps[self.det-1].shape)
-        # self.datamap = maps.maps.transpose(3, 2, 0, 1)  #maps.maps[self.det-1].transpose(3, 2, 0, 1)   # now the order is (x, y, sb, freq)
-        # self.rms = maps.rms.transpose(3, 2, 0, 1)  #maps.rms[self.det-1].transpose(3, 2, 0, 1)
         meandec = np.mean(maps.y)
         self.x = maps.x * deg2mpc * np.cos(meandec * np.pi / 180) #tools.cent2edge(np.array(my_file['x'][:])) * deg2mpc  # ra
         self.y = maps.y * deg2mpc #tools.cent2edge(np.array(my_file['y'][:])) * deg2mpc  # dec
@@ -42,41 +40,30 @@ class comap2ps():
         self.nz = len(self.z)
         self.nx = len(self.x)
         self.ny = len(self.y)
-        # print(self.datamap[40, 50, 0, :])
-        # print(self.x[1] - self.x[0])
-        # print('dx', self.y[1] - self.y[0])
+        
         self.decimate_in_frequency(decimate_z)
-        # print(self.x[1] - self.x[0])
         self.remove_whitespace()
         self.dx = self.x[1] - self.x[0]
         self.dy = self.y[1] - self.y[0]
         self.dz = self.z[1] - self.z[0]
-        # print('dx', self.dy)
+        
         self.nz = len(self.z)
         self.nx = len(self.x)
         self.ny = len(self.y)
-        # print(self.nx, self.ny, self.nz)
+        
         kmax = np.sqrt(
             np.max(np.abs(fft.fftfreq(len(self.x), self.dx)) * 2 * np.pi) ** 2
             + np.max(np.abs(fft.fftfreq(len(self.y), self.dy)) * 2 * np.pi) ** 2
             + np.max(np.abs(fft.fftfreq(len(self.z), self.dz)) * 2 * np.pi) ** 2
         )
 
-        # kmax = np.sqrt(
-        #     np.max(np.abs(fft.fftfreq(len(self.x), self.dx))) ** 2
-        #     + np.max(np.abs(fft.fftfreq(len(self.y), self.dy))) ** 2
-        #     + np.max(np.abs(fft.fftfreq(len(self.z), self.dz))) ** 2
-        # )
-        # print(kmax)
-        # print(np.sqrt(sum([(1.0 / (2*d))**2 for d in [self.dx, self.dy, self.dz]])))
-        # print((1.0 / (2*self.dx)))
-        # print((1.0 / (2*self.dy)))
-        # print((1.0 / (2*self.dz)))
+
         n_k = 15
-        # print(kmax)
-        # kmax = 0.23#0.155
-        self.k_bin_edges = np.linspace(0 - 1e-5, kmax + 1e-5, n_k)  # np.logspace(-3, np.log10(kmax + 1e-5), n_k) #np.linspace(0 - 1e-5, kmax + 1e-5, n_k)
-        self.k = tools.edge2cent(self.k_bin_edges)
+
+        
+        # self.k_bin_edges = np.linspace(0 - 1e-5, kmax + 1e-5, n_k)  # np.logspace(-3, np.log10(kmax + 1e-5), n_k) #np.linspace(0 - 1e-5, kmax + 1e-5, n_k)
+        self.k_bin_edges = np.logspace(-2.0, np.log10(1.5), n_k) #np.linspace(0 - 1e-5, kmax + 1e-5, n_k)
+        #self.k = tools.edge2cent(self.k_bin_edges)
 
 
     def decimate_in_frequency(self, n_end): ##### understand this!!
@@ -132,19 +119,19 @@ class comap2ps():
 
 
     def calculate_mode_mixing_matrix(self, det=None):
-        self.M_inv, k = master.mode_coupling_matrix_3d(
+        self.M_inv, self.k = master.mode_coupling_matrix_3d(
             self.w, k_bin_edges=self.k_bin_edges, dx=self.dx,
             dy=self.dy, dz=self.dz, insert_edge_bins=False
         )
     
     def calculate_ps(self, det=None):
-        ps_with_weight, k, _ = tools.compute_power_spec3d(
+        ps_with_weight, self.k, self.nmodes = tools.compute_power_spec3d(
             self.datamap * self.w, self.k_bin_edges, dx=self.dx, dy=self.dy, dz=self.dz)
         if self.pseudo_ps: 
             self.data_ps = ps_with_weight
         else:
             self.data_ps = np.dot(self.M_inv, ps_with_weight)
-        return self.data_ps, k
+        return self.data_ps, self.k
 
     def run_noise_sims(self, n_sims):
         rms_ps = np.zeros((len(self.k_bin_edges) - 1, n_sims))
@@ -191,6 +178,23 @@ class comap2ps():
         self.rms_ps_std = np.std(rms_ps, axis=1, ddof=1)
         return self.rms_ps_mean, self.rms_ps_std
 
+
+    def make_h5(self, outname='ps.h5'):
+        f1 = h5py.File(outname, 'w')
+        try: 
+            f1.create_dataset('ps', data=self.data_ps)
+            f1.create_dataset('k', data=self.k)
+            f1.create_dataset('k_bin_edges', data=self.k_bin_edges)
+            f1.create_dataset('nmodes', data=self.nmodes)
+        except:
+            print('No power spectrum calculated.')
+            return 
+        try:
+            f1.create_dataset('rms_ps_mean', data=self.rms_ps_mean)
+            f1.create_dataset('rms_ps_std', data=self.rms_ps_std)
+        except:
+            pass
+        f1.close()
     # def noise_sims_from_file(self, mapfile):
     #     with h5py.File(mapfile, mode="r") as my_file:
     #         randmap = np.array(my_file['map_sim'][:, self.det-1]).transpose(0, 4, 3, 1, 2)  # order is now (nsim, x, y, sb, freq)
