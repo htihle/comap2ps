@@ -11,9 +11,9 @@ import master
 class comap2xs():
     def __init__(self, maps, maps2, decimate_z=32, use_mpi=False):
         self.pseudo_ps = True
-        
-        deg2mpc = 76.22  # at redshift 2.9
-        dz2mpc = 699.62  # redshift 2.4 to 3.4
+        h = 0.7
+        deg2mpc = 76.22 / h  # at redshift 2.9
+        dz2mpc = 699.62 / h  # redshift 2.4 to 3.4
 
         dz = (1+2.9) ** 2 * 32.2e-3 / 115
         n_f = 256  #64
@@ -60,7 +60,9 @@ class comap2xs():
 
         n_k = 15
 
-        self.k_bin_edges = np.linspace(0 - 1e-5, kmax + 1e-5, n_k)  # np.logspace(-3, np.log10(kmax + 1e-5), n_k) #np.linspace(0 - 1e-5, kmax + 1e-5, n_k)
+#        self.k_bin_edges = np.linspace(0 - 1e-5, kmax + 1e-5, n_k)  # np.logspace(-3, np.log10(kmax + 1e-5), n_k) #np.linspace(0 - 1e-5, kmax + 1e-5, n_k)
+        self.k_bin_edges = np.logspace(-2.0, np.log10(1.5), n_k) #np.linspace(0 - 1e-5, kmax + 1e-5, n_k)
+
         self.k = tools.edge2cent(self.k_bin_edges)
 
 
@@ -120,6 +122,9 @@ class comap2xs():
         self.used_x = used_x
         self.used_y = used_y
         self.used_z = used_z
+        print(used_x)
+        print(used_y)
+        print(used_z)
 
 
     # def calculate_mode_mixing_matrix(self, det=None):

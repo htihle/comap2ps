@@ -55,8 +55,11 @@ ax1.errorbar(k, ps_sum, rms_sig, fmt='o', label=r'$\tilde{P}_{sum}(k)$')
 ax1.errorbar(k, ps_diff, rms_sig, fmt='o', label=r'$\tilde{P}_{diff}(k)$')
 ax1.plot(k, rms_mean, 'k', label=r'$\tilde{P}_{noise}(k)$', alpha=0.4)
 # ax1.plot(k_th / h, ps_th * h ** 3 * 10, 'r--', label=r'$10 * P_{Theory}(k)$')
-ax1.set_ylabel(r'$\tilde{P}(k)$ [K${}^2$ (Mpc / $h$)${}^3$]')
-ax1.set_ylim(0, lim)  # ax1.set_ylim(0, 0.1)
+ax1.set_ylabel(r'$\tilde{P}(k)$ [K${}^2$ Mpc${}^3$]')
+#ax1.set_ylim(0, lim)  # ax1.set_ylim(0, 0.1)
+ax1.set_yscale('log')
+ax1.set_xscale('log')
+
 plt.legend()
 
 ax2 = fig.add_subplot(212)
@@ -64,11 +67,12 @@ ax2.errorbar(k, (ps_sum - rms_mean) / rms_sig, rms_sig / rms_sig, fmt='o', label
 ax2.errorbar(k, (ps_diff - rms_mean) / rms_sig, rms_sig / rms_sig, fmt='o', label=r'$\tilde{P}_{diff}(k) - \tilde{P}_{noise}(k)$')
 ax2.plot(k, 0 * rms_mean, 'k', alpha=0.4)
 ax2.set_ylabel(r'$\tilde{P}(k) / \sigma_\tilde{P}$')
-ax2.set_xlabel(r'$k$ [(Mpc / $h$)${}^{-1}$]')
+ax2.set_xlabel(r'$k$ [Mpc${}^{-1}$]')
 ax2.set_ylim(-7, 20)
+ax2.set_xscale('log')
 plt.legend()
 
 
-plt.savefig('ps_halfmission_diff.pdf', bbox_inches='tight')
+plt.savefig('ps_daynight_diff.png', bbox_inches='tight')
 plt.show()
 # print('Done with feed ', det)

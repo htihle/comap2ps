@@ -11,15 +11,15 @@ import master
 
 
 class comap2ps():
-    def __init__(self, maps, decimate_z=32, use_mpi=False, det=None):
+    def __init__(self, maps, decimate_z=32, use_mpi=False, det=None, perp=False):
         self.pseudo_ps = True
+        self.perp = perp
         h = 0.7
         deg2mpc = 76.22 / h  # at redshift 2.9
         dz2mpc = 699.62 / h # redshift 2.4 to 3.4
         K2muK = 1e6
-        #freq = np.linspace(26, 34, 257)
-        dz = (1+2.9) ** 2 * 32.2e-3 / 115
-        n_f = 256  # 64
+        dz = (1+2.9) ** 2 * 32.2e-3 / 115  # conversion 
+        n_f = 256  # 64 * 4
         redshift = np.linspace(2.9 - n_f/2*dz, 2.9 + n_f/2*dz, n_f + 1)
         
         if det is not None:
@@ -56,7 +56,7 @@ class comap2ps():
             + np.max(np.abs(fft.fftfreq(len(self.y), self.dy)) * 2 * np.pi) ** 2
             + np.max(np.abs(fft.fftfreq(len(self.z), self.dz)) * 2 * np.pi) ** 2
         )
-
+#        print(np.max(np.abs(fft.fftfreq(len(self.z), self.dz)) * 2 * np.pi) ** 2)
 
         n_k = 15
 
@@ -64,6 +64,18 @@ class comap2ps():
         # self.k_bin_edges = np.linspace(0 - 1e-5, kmax + 1e-5, n_k)  # np.logspace(-3, np.log10(kmax + 1e-5), n_k) #np.linspace(0 - 1e-5, kmax + 1e-5, n_k)
         self.k_bin_edges = np.logspace(-2.0, np.log10(1.5), n_k) #np.linspace(0 - 1e-5, kmax + 1e-5, n_k)
         #self.k = tools.edge2cent(self.k_bin_edges)
+
+
+        #### this lead to nan in some cases test this thoroughly:
+        # mean = np.nansum(self.datamap * self.w, axis=(0,1)) / np.nansum(self.w, axis=(0,1))
+        # self.datamap = self.datamap - mean[None, None, :]
+
+
+
+        #vmax = 200
+        #plt.imshow(self.datamap[:,:,13], interpolation='none', vmin=-vmax, vmax=vmax)
+        #plt.show()
+        #sys.exit()
 
 
     def decimate_in_frequency(self, n_end): ##### understand this!!
@@ -74,7 +86,8 @@ class comap2ps():
         self.mask[(self.rms != 0.0)] = 1.0
         where = (self.mask == 1.0)
         self.w = np.zeros_like(self.rms)
-        self.w[where] = np.mean(self.rms[where].flatten() ** 2) / self.rms[where] ** 2
+        self.w[where] = 1 / np.sqrt(np.mean(1 / self.rms[where].flatten() ** 4)) / self.rms[where] ** 2 
+        #np.mean(self.rms[where].flatten() ** 2) / self.rms[where] ** 2
 
         n_dec = self.nz // n_end
         self.datamap = np.sum(
@@ -102,6 +115,7 @@ class comap2ps():
         used_x = np.where(self.mask.sum(axis=(1, 2)))[0]
         used_y = np.where(self.mask.sum(axis=(0, 2)))[0]
         used_z = np.where(self.mask.sum(axis=(0, 1)))[0]
+        
         try: 
             self.datamap = self.datamap[used_x[0]:used_x[-1], used_y[0]:used_y[-1], used_z[0]:used_z[-1]]
             self.w = self.w[used_x[0]:used_x[-1], used_y[0]:used_y[-1], used_z[0]:used_z[-1]]
@@ -111,12 +125,14 @@ class comap2ps():
             self.y = self.y[used_y[0]:used_y[-1]]
             self.z = self.z[used_z[0]:used_z[-1]]
         except IndexError:
-            print('Empty map', len(used_x), len(used_y), len(used_z), 'Feed: ', self.det)
+            print('Empty map', len(used_x), len(used_y), len(used_z))#, 'Feed: ', self.det)
             pass
         self.used_x = used_x
         self.used_y = used_y
         self.used_z = used_z
-
+        
+            
+        
 
     def calculate_mode_mixing_matrix(self, det=None):
         self.M_inv, self.k = master.mode_coupling_matrix_3d(
@@ -125,13 +141,17 @@ class comap2ps():
         )
     
     def calculate_ps(self, det=None):
-        ps_with_weight, self.k, self.nmodes = tools.compute_power_spec3d(
-            self.datamap * self.w, self.k_bin_edges, dx=self.dx, dy=self.dy, dz=self.dz)
+        if self.perp:
+            ps_with_weight, self.k, self.nmodes = tools.compute_power_spec_perp_vs_par(
+                self.datamap * self.w, self.k_bin_edges, dx=self.dx, dy=self.dy, dz=self.dz)
+        else:
+            ps_with_weight, self.k, self.nmodes = tools.compute_power_spec3d(
+                self.datamap * self.w, self.k_bin_edges, dx=self.dx, dy=self.dy, dz=self.dz)
         if self.pseudo_ps: 
             self.data_ps = ps_with_weight
         else:
             self.data_ps = np.dot(self.M_inv, ps_with_weight)
-        return self.data_ps, self.k
+        return self.data_ps, self.k, self.nmodes
 
     def run_noise_sims(self, n_sims):
         rms_ps = np.zeros((len(self.k_bin_edges) - 1, n_sims))

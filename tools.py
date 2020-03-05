@@ -95,11 +95,44 @@ def compute_power_spec3d(x, k_bin_edges, dx=1, dy=1, dz=1):
 
     kgrid = np.sqrt(sum(ki ** 2 for ki in np.meshgrid(kx, ky, kz, indexing='ij')))
 
+    ###### comment this out later
+    # kperp = np.sqrt(sum(ki ** 2 for ki in np.meshgrid(kx, ky, indexing='ij')))
+    # kperp = kperp[:, :, None] + 0.0 * Pk_3D
+
+    # kpar = np.abs(kz)
+    # kpar = kpar[None, None, :] + 0.0 * Pk_3D
+    # kmin = np.min(kperp.flatten())
+    # print(kmin, np.min(kpar.flatten()))
+    # kgrid[np.where(np.log10(kperp) < -1.0)] = 0.0
+    ##########
+
     Pk_nmodes = np.histogram(kgrid[kgrid > 0], bins=k_bin_edges, weights=Pk_3D[kgrid > 0])[0]
     nmodes = np.histogram(kgrid[kgrid > 0], bins=k_bin_edges)[0]
 
     k = (k_bin_edges[1:] + k_bin_edges[:-1]) / 2.0
     Pk = np.zeros_like(k)
+    Pk[np.where(nmodes > 0)] = Pk_nmodes[np.where(nmodes > 0)] / nmodes[np.where(nmodes > 0)]
+    return Pk, k, nmodes
+
+def compute_power_spec_perp_vs_par(x, k_bin_edges, dx=1, dy=1, dz=1):
+    n_x, n_y, n_z = x.shape
+    Pk_3D = np.abs(fft.fftn(x)) ** 2 * dx * dy * dz / (n_x * n_y * n_z)
+
+    kx = np.fft.fftfreq(n_x, dx) * 2 * np.pi
+    ky = np.fft.fftfreq(n_y, dy) * 2 * np.pi
+    kz = np.fft.fftfreq(n_z, dz) * 2 * np.pi
+
+    kperp = np.sqrt(sum(ki ** 2 for ki in np.meshgrid(kx, ky, indexing='ij')))
+    kperp = kperp[:, :, None] + 0.0 * Pk_3D
+
+    kpar = np.abs(kz)
+    kpar = kpar[None, None, :] + 0.0 * Pk_3D
+
+    Pk_nmodes = np.histogram2d(kperp.flatten(), kpar.flatten(), bins=k_bin_edges, weights=Pk_3D.flatten())[0]
+    nmodes = np.histogram2d(kperp.flatten(), kpar.flatten(), bins=k_bin_edges)[0]
+
+    k = (k_bin_edges[1:] + k_bin_edges[:-1]) / 2.0
+    Pk = np.zeros((len(k), len(k)))
     Pk[np.where(nmodes > 0)] = Pk_nmodes[np.where(nmodes > 0)] / nmodes[np.where(nmodes > 0)]
     return Pk, k, nmodes
 
