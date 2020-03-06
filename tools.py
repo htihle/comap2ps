@@ -1,6 +1,7 @@
 import numpy as np
 import numpy.fft as fft
-
+import os
+import errno
 
 def cent2edge(x):
     x = np.array(x)
@@ -170,3 +171,11 @@ def distribute_indices(n_indices, n_processes, my_rank):
     my_indices = range(start_index, start_index + my_n_cubes)
     return my_indices
 
+# From Tony Li
+
+def ensure_dir_exists(path):
+    try:
+        os.makedirs(path)
+    except OSError as exception:
+        if exception.errno != errno.EEXIST:
+            raise
