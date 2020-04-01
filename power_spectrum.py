@@ -13,18 +13,28 @@ class PowerSpectrum():
         self.map.w = self.map.w / np.sqrt(np.mean(self.map.w.flatten() ** 2))
         self.weights_are_normalized = True
     
-    def calculate_ps(self):
+    def calculate_ps(self, do_2d=False):
         n_k = 15
 
-        self.k_bin_edges = np.logspace(-2.0, np.log10(1.5), n_k)
+        
         
         if not self.weights_are_normalized: self.normalize_weights()
-
-        self.ps, self.k, self.nmodes = tools.compute_power_spec3d(
-            self.map.map * self.map.w, self.k_bin_edges,
-            dx=self.map.dx, dy=self.map.dy, dz=self.map.dz
+        if do_2d:
+            self.k_bin_edges_par = np.logspace(-2.0, np.log10(1.0), n_k)
+            self.k_bin_edges_perp = np.logspace(-2.0 + np.log10(2), np.log10(1.5), n_k)
+            
+            self.ps_2d, self.k, self.nmodes = tools.compute_power_spec_perp_vs_par(
+                self.map.map * self.map.w, (self.k_bin_edges_perp, self.k_bin_edges_par),
+                dx=self.map.dx, dy=self.map.dy, dz=self.map.dz
             )
-        return self.ps, self.k, self.nmodes
+            return self.ps_2d, self.k, self.nmodes
+        else:
+            self.k_bin_edges = np.logspace(-2.0, np.log10(1.5), n_k)
+            self.ps, self.k, self.nmodes = tools.compute_power_spec3d(
+                self.map.map * self.map.w, self.k_bin_edges,
+                dx=self.map.dx, dy=self.map.dy, dz=self.map.dz
+            )
+            return self.ps, self.k, self.nmodes
     
     def run_noise_sims(self, n_sims):
         if not self.weights_are_normalized: self.normalize_weights()
@@ -56,6 +66,11 @@ class PowerSpectrum():
         except:
             print('No power spectrum calculated.')
             return 
+        try:
+            f1.create_dataset('ps_2d', data=self.ps_2d)
+        except:
+            pass
+        
         try:
             f1.create_dataset('rms_ps_mean', data=self.rms_ps_mean)
             f1.create_dataset('rms_ps_std', data=self.rms_ps_std)

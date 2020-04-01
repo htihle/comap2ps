@@ -36,7 +36,7 @@ ax1.set_ylabel(r'$\tilde{P}(k)$ [$\mu$K${}^2$ (Mpc)${}^3$]')
 ax1.set_ylim(1e5, 1e8)  # ax1.set_ylim(0, 0.1)
 ax1.set_yscale('log')
 ax1.set_xscale('log')
-plt.grid()
+ax1.grid()
 plt.legend()
 
 ax2 = fig.add_subplot(212)
@@ -47,6 +47,7 @@ ax2.set_xlabel(r'$k$ [Mpc${}^{-1}$]')
 #ax2.set_ylim(-7, 20)
 ax2.set_ylim(-7, 100)
 ax2.set_xscale('log')
+ax2.grid()
 plt.legend()
 
 

@@ -15,6 +15,7 @@ except IndexError:
     print('Missing filename!')
     print('Usage: python ps_script.py mapname')
     sys.exit(1)
+    
 save_folder = ''#'/mn/stornext/u3/haavarti/www_docs/diag/ps/'
 
 prefix = mapname[:-6].rpartition("/")[-1]
@@ -50,6 +51,7 @@ ax2.set_ylabel(r'$\tilde{P}(k) / \sigma_\tilde{P}$')
 ax2.set_xlabel(r'$k$ [Mpc${}^{-1}$]')
 ax2.set_ylim(-7, 20)
 ax2.set_xscale('log')
+ax2.grid()
 plt.legend()
 
 
@@ -111,6 +113,7 @@ ax1.set_xscale('log')
 ax1.grid()
 ax2.plot(k, 0 * rms_mean, 'k', alpha=0.4)
 ax2.set_xscale('log')
+ax2.grid()
 plt.figlegend(*ax1.get_legend_handles_labels(), loc='upper right')
 # ax1.legend(loc='upper right')
 # ax2.legend()
