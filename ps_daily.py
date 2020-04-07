@@ -15,7 +15,7 @@ except IndexError:
     print('Missing filename!')
     print('Usage: python ps_script.py mapname')
     sys.exit(1)
-save_folder = ''#'/mn/stornext/u3/haavarti/www_docs/diag/ps/'
+save_folder = '/mn/stornext/u3/haavarti/www_docs/diag/ps/'
 
 prefix = mapname[:-6].rpartition("/")[-1]
 

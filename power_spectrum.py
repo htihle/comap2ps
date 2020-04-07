@@ -43,8 +43,9 @@ class PowerSpectrum():
     
     def make_h5(self, outname=None):
         if outname is None:
-            tools.ensure_dir_exists('spectra')
-            outname = 'spectra/ps' + self.map.save_string + '.h5'            
+            folder = '/mn/stornext/d16/cmbco/comap/protodir/spectra/'
+            tools.ensure_dir_exists(folder)
+            outname = folder + 'ps' + self.map.save_string + '.h5'            
 
         f1 = h5py.File(outname, 'w')
         try:
