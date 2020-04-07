@@ -132,8 +132,8 @@ def compute_power_spec_perp_vs_par(x, k_bin_edges, dx=1, dy=1, dz=1):
     Pk_nmodes = np.histogram2d(kperp.flatten(), kpar.flatten(), bins=k_bin_edges, weights=Pk_3D.flatten())[0]
     nmodes = np.histogram2d(kperp.flatten(), kpar.flatten(), bins=k_bin_edges)[0]
 
-    k = (k_bin_edges[1:] + k_bin_edges[:-1]) / 2.0
-    Pk = np.zeros((len(k), len(k)))
+    k = [(k_edges[1:] + k_edges[:-1]) / 2.0 for k_edges in k_bin_edges]
+    Pk = np.zeros((len(k[0]), len(k[1])))
     Pk[np.where(nmodes > 0)] = Pk_nmodes[np.where(nmodes > 0)] / nmodes[np.where(nmodes > 0)]
     return Pk, k, nmodes
 
