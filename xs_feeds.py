@@ -28,8 +28,8 @@ for i in feeds:
         xs, k, nmodes = my_xs.calculate_xs()
 
         rms_mean, rms_sig = my_xs.run_noise_sims(10)
-
-        my_xs.make_h5()
+        outname = 'spectra/xs_feeds' + my_map.save_string + '_' + my_map2.map_string + '_%02i.h5' % j   
+        my_xs.make_h5(outname=outname)
 
         lim = np.mean(np.abs(xs[4:])) * 4
 
