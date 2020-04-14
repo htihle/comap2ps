@@ -59,7 +59,9 @@ for i in feeds:
         ax2.grid()
         plt.legend()
 
-        plt.savefig('xs' + my_map.save_string + '_' + my_map2.map_string + '_%02i.png' % j, bbox_inches='tight')
+        folder = '/mn/stornext/u3/haavarti/www_docs/files/xs/'
+        plt.savefig(folder + 'xs' + my_map.save_string + '_' + my_map2.map_string + '_%02i.png' % j, bbox_inches='tight')
+        print('Done with %02i, %02i!' % (i, j))
 
 
 
