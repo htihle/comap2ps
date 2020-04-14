@@ -20,8 +20,6 @@ feeds = [1, 2, 3, 5, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19]
 
 for i in feeds:
     for j in feeds:
-        if j <= i:
-            continue
         my_map = map_cosmo.MapCosmo(mapname, feed=i)
         my_map2 = map_cosmo.MapCosmo(mapname2, feed=j)
 
