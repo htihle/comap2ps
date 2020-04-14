@@ -124,8 +124,8 @@ class CrossSpectrum():
                 (randmap[0] * self.maps[0].w, randmap[1] * self.maps[1].w),
                 self.k_bin_edges, dx=self.maps[0].dx, dy=self.maps[0].dy, dz=self.maps[0].dz)[0]
                 
-        self.rms_xs_mean = np.mean(rms_xs, axis=1)
-        self.rms_xs_std = np.std(rms_xs, axis=1)
+        self.rms_xs_mean = np.mean(self.rms_xs, axis=1)
+        self.rms_xs_std = np.std(self.rms_xs, axis=1)
         return self.rms_xs_mean, self.rms_xs_std
     
     def make_h5(self, outname=None, save_noise_realizations=False):
