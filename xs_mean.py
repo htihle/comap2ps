@@ -20,6 +20,8 @@ rms_xs_std = np.zeros_like(xs)
 
 rms_xs = np.zeros((n_feed, n_feed, n_k, n_sim))
 
+chi2 = np.zeros((n_feed, n_feed, n_k))
+
 for i in range(n_feed):
     for j in range(n_feed):
         try:
@@ -35,4 +37,10 @@ for i in range(n_feed):
             rms_xs[i, j] = np.nan
             rms_xs_std[i, j] = np.nan
 
-print(xs)
+        chi3 = np.sum((xs[i,j] / rms_xs[i,j]) ** 3)
+
+        chi2[i, j] = np.sign(chi3) * np.sum((xs[i,j] / rms_xs[i,j]) ** 2 - n_k) / np.sqrt(2 * n_k)
+
+plt.imshow(chi2, interpolation='none')
+
+
