@@ -27,7 +27,7 @@ for i in feeds:
 
         xs, k, nmodes = my_xs.calculate_xs()
 
-        rms_mean, rms_sig = my_xs.run_noise_sims(10)
+        rms_mean, rms_sig = my_xs.run_noise_sims(10, seed=42)
 
         my_xs.make_h5()
 
