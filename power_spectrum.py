@@ -16,8 +16,6 @@ class PowerSpectrum():
     def calculate_ps(self, do_2d=False):
         n_k = 15
 
-        
-        
         if not self.weights_are_normalized: self.normalize_weights()
         if do_2d:
             self.k_bin_edges_par = np.logspace(-2.0, np.log10(1.0), n_k)
@@ -105,16 +103,24 @@ class CrossSpectrum():
             self.k_bin_edges, dx=self.maps[0].dx, dy=self.maps[0].dy, dz=self.maps[0].dz)
         return self.xs, self.k, self.nmodes
 
-    def run_noise_sims(self, n_sims):
+    def run_noise_sims(self, n_sims, seed=None):
         if not self.weights_are_normalized: self.normalize_weights()
+
+        if seed is not None:
+            if self.maps[0].feed is not None:
+                feeds = np.array([self.maps[0].feed, self.maps[1].feed])
+            else:
+                feeds = np.array([1, 1])
         
-        rms_xs = np.zeros((len(self.k_bin_edges) - 1, n_sims))
+        self.rms_xs = np.zeros((len(self.k_bin_edges) - 1, n_sims))
         for i in range(n_sims):
             randmap = [np.zeros(self.maps[0].rms.shape), np.zeros(self.maps[0].rms.shape)]
             for j in range(len(self.maps)):
+                if seed is not None:
+                    np.random.seed(seed * i * j * feeds[j])
                 randmap[j] = np.random.randn(*self.maps[j].rms.shape) * self.maps[j].rms
 
-            rms_xs[:, i] = tools.compute_cross_spec3d(
+            self.rms_xs[:, i] = tools.compute_cross_spec3d(
                 (randmap[0] * self.maps[0].w, randmap[1] * self.maps[1].w),
                 self.k_bin_edges, dx=self.maps[0].dx, dy=self.maps[0].dy, dz=self.maps[0].dz)[0]
                 
@@ -122,7 +128,7 @@ class CrossSpectrum():
         self.rms_xs_std = np.std(rms_xs, axis=1)
         return self.rms_xs_mean, self.rms_xs_std
     
-    def make_h5(self, outname=None):
+    def make_h5(self, outname=None, save_noise_realizations=False):
         if outname is None:
             tools.ensure_dir_exists('spectra')
             outname = 'spectra/xs' + self.maps[0].save_string + '_' + self.maps[1].map_string + '.h5'            
@@ -143,4 +149,9 @@ class CrossSpectrum():
             f1.create_dataset('rms_xs_std', data=self.rms_xs_std)
         except:
             pass
+        if save_noise_realizations:
+            try:
+                f1.create_dataset('rms_xs', data=self.rms_xs)
+            except:
+                pass
         f1.close()
