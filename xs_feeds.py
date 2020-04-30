@@ -27,10 +27,10 @@ for i in feeds:
 
         xs, k, nmodes = my_xs.calculate_xs()
 
-        rms_mean, rms_sig = my_xs.run_noise_sims(10, seed=42)
+        rms_mean, rms_sig = my_xs.run_noise_sims(100, seed=42)
 
         outname = 'spectra/xs_feeds' + my_map.save_string + '_' + my_map2.map_string + '_%02i.h5' % j   
-        my_xs.make_h5(outname=outname)
+        my_xs.make_h5(outname=outname, save_noise_realizations=True)
 
         lim = np.mean(np.abs(xs[4:])) * 4
 
@@ -59,7 +59,7 @@ for i in feeds:
         plt.legend()
 
         folder = '/mn/stornext/u3/haavarti/www_docs/files/xs/'
-        plt.savefig(folder + 'xs' + my_map.save_string + '_' + my_map2.map_string + '_%02i.png' % j, bbox_inches='tight')
+        plt.savefig(folder + 'xs_co6_%02i_%02i' % (i,j) + my_map.map_string + '_' + my_map2.map_string + '.png', bbox_inches='tight')
         print('Done with %02i, %02i!' % (i, j))
 
 
