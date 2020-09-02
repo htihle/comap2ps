@@ -119,9 +119,9 @@ class CrossSpectrum():
                 if seed is not None:
                     np.random.seed(seed * (i + 1) * (j + 1) * feeds[j])
                 randmap[j] = np.random.randn(*self.maps[j].rms.shape) * self.maps[j].rms
-
+            w = np.sqrt(self.maps[0].w * self.maps[1].w)
             self.rms_xs[:, i] = tools.compute_cross_spec3d(
-                (randmap[0] * self.maps[0].w, randmap[1] * self.maps[1].w),
+                (randmap[0] * w, randmap[1] * w),
                 self.k_bin_edges, dx=self.maps[0].dx, dy=self.maps[0].dy, dz=self.maps[0].dz)[0]
                 
         self.rms_xs_mean = np.mean(self.rms_xs, axis=1)
