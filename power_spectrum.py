@@ -15,7 +15,7 @@ class PowerSpectrum():
     
     def calculate_ps(self, do_2d=False):
         n_k = 15
-
+        
         if not self.weights_are_normalized: self.normalize_weights()
         if do_2d:
             self.k_bin_edges_par = np.logspace(-2.0, np.log10(1.0), n_k)

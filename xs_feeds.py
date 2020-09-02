@@ -11,18 +11,19 @@ import power_spectrum
 
 try:
     mapname = sys.argv[1]
-    mapname2 = sys.argv[2]
+    # mapname2 = sys.argv[2]
 except IndexError:
     print('Missing filename!')
-    print('Usage: python ps_script.py mapname mapname2')
+    print('Usage: python ps_script.py mapname')  # mapname2')
     sys.exit(1)
 feeds = [1, 2, 3, 5, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19]
 
 for i in feeds:
     for j in feeds:
-        my_map = map_cosmo.MapCosmo(mapname, feed=i)
-        my_map2 = map_cosmo.MapCosmo(mapname2, feed=j)
-
+        my_map = map_cosmo.MapCosmo(mapname, feed=i, jk='half', split=0)
+        my_map2 = map_cosmo.MapCosmo(mapname, feed=j, jk='half', split=1)
+        print(my_map.rms.shape)
+        print(my_map.rms[28, 68, :])
         my_xs = power_spectrum.CrossSpectrum(my_map, my_map2)
 
         xs, k, nmodes = my_xs.calculate_xs()
@@ -33,7 +34,7 @@ for i in feeds:
         my_xs.make_h5(outname=outname, save_noise_realizations=True)
 
         lim = np.mean(np.abs(xs[4:])) * 4
-
+        #print(xs)
         fig = plt.figure()
         fig.suptitle('feed %02i x feed %02i' % (i, j))
         ax1 = fig.add_subplot(211)
@@ -59,7 +60,7 @@ for i in feeds:
         plt.legend()
 
         folder = '/mn/stornext/u3/haavarti/www_docs/files/xs/'
-        plt.savefig(folder + 'xs_co6_%02i_%02i' % (i,j) + my_map.map_string + '_' + my_map2.map_string + '.png', bbox_inches='tight')
+        plt.savefig(folder + 'xs_co7_%02i_%02i' % (i,j) + my_map.map_string + '_' + my_map2.map_string + '.png', bbox_inches='tight')
         print('Done with %02i, %02i!' % (i, j))
 
 

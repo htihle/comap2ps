@@ -3,20 +3,33 @@ import h5py
 import tools
 
 class MapCosmo():
-    def __init__(self, mappath, feed=None):
+    def __init__(self, mappath, feed=None, jk=None, split=None):
         self.feed = feed
         self.interpret_mapname(mappath)
         with h5py.File(mappath, mode="r") as my_file:
             self.x = np.array(my_file['x'][:])
             self.y = np.array(my_file['y'][:])
-            if feed is not None:
-                self.map = np.array(my_file['map'][feed-1])
-                self.rms = np.array(my_file['rms'][feed-1])
-                
+            if jk is not None:
+                if feed is not None:
+                    self.map = np.array(my_file['jackknives/map_' + jk][split,feed-1])
+                    self.rms = np.array(my_file['jackknives/rms_' + jk][split,feed-1])
+                    
+                else:
+                    self.map = np.array(my_file['jackknives/map_' + jk][split])
+                    self.rms = np.array(my_file['jackknives/rms_' + jk][split])
             else:
-                self.map = np.array(my_file['map_beam'][:])
-                self.rms = np.array(my_file['rms_beam'][:])
-        
+                if feed is not None:
+                    self.map = np.array(my_file['map'][feed-1])
+                    self.rms = np.array(my_file['rms'][feed-1])
+                    
+                else:
+                    try: 
+                        self.map = np.array(my_file['map_coadd'][:])
+                        self.rms = np.array(my_file['rms_coadd'][:])
+                    except:
+                        self.map = np.array(my_file['map_beam'][:])
+                        self.rms = np.array(my_file['rms_beam'][:])
+                
         h = 0.7
         deg2mpc = 76.22 / h  # at redshift 2.9
         dz2mpc = 699.62 / h # redshift 2.4 to 3.4
@@ -31,7 +44,7 @@ class MapCosmo():
 
         self.map = self.map.transpose(3, 2, 0, 1) * K2muK
         self.rms = self.rms.transpose(3, 2, 0, 1) * K2muK
-
+                
         sh = self.map.shape
         self.map = self.map.reshape((sh[0], sh[1], sh[2] * sh[3])) 
         self.rms = self.rms.reshape((sh[0], sh[1], sh[2] * sh[3]))
@@ -40,7 +53,6 @@ class MapCosmo():
         where = (self.mask == 1.0)
         self.w = np.zeros_like(self.rms)
         self.w[where] = 1 / self.rms[where] ** 2
-
         meandec = np.mean(self.y)
         self.x = self.x * deg2mpc * np.cos(meandec * np.pi / 180)
         self.y = self.y * deg2mpc 
