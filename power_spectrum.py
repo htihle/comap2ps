@@ -97,9 +97,9 @@ class CrossSpectrum():
         self.k_bin_edges = np.logspace(-2.0, np.log10(1.5), n_k)
         
         if not self.weights_are_normalized: self.normalize_weights()
-
+        w = np.sqrt(self.maps[0].w * self.maps[1].w)
         self.xs, self.k, self.nmodes = tools.compute_cross_spec3d(
-            (self.maps[0].map * self.maps[0].w, self.maps[1].map * self.maps[1].w),
+            (self.maps[0].map * w, self.maps[1].map * w),
             self.k_bin_edges, dx=self.maps[0].dx, dy=self.maps[0].dy, dz=self.maps[0].dz)
         return self.xs, self.k, self.nmodes
 
