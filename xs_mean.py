@@ -35,7 +35,7 @@ for i in range(n_feed):
         try:
             #filepath = 'spectra/xs_feeds_co2_half_0_map_full_%02i_full_%02i.h5' % (i+1, j+1)
 #            filepath = 'spectra/xs_feeds_co6_half_0_good_hp_map_%02i_map_%02i.h5' % (i+1, j+1)
-            filepath = 'spectra/xs_feeds_co7_map_complete_%02i_complete_%02i.h5' % (i+1, j+1)
+            filepath = 'spectra/xs_feeds_par_co7_map_complete_%02i_complete_%02i.h5' % (i+1, j+1)
             with h5py.File(filepath, mode="r") as my_file:
                 xs[i, j] = np.array(my_file['xs'][:])
                 rms_xs[i, j] = np.array(my_file['rms_xs'][:])
@@ -85,7 +85,7 @@ plt.xlabel('Feed')
 plt.ylabel('Feed')
 cbar = plt.colorbar()
 cbar.set_label(r'$|\chi^2| \times$ sign($\chi^3$)')
-plt.savefig('xs_grid_full_test.png', bbox_inches='tight')
+plt.savefig('xs_grid_par_co7_full.png', bbox_inches='tight')
 
 plt.figure()
 vmax = 2e2
@@ -157,7 +157,7 @@ plt.tight_layout()
 plt.legend()
 
 #plt.savefig('xs_mean_co2_full_proper_error.png', bbox_inches='tight')
-plt.savefig('xs_mean_co7_full.png', bbox_inches='tight')
+plt.savefig('xs_mean_par_co7_full.png', bbox_inches='tight')
 #plt.savefig('xs_mean_good_proper_error.png', bbox_inches='tight')
 
 
